@@ -1,9 +1,170 @@
 config global
-	option budget	'65'
+	option budget	'170'
 
 config port
 	option enable	'1'
 	option id	'1'
 	option name	'lan1'
 	option poe_plus	'1'
-	option priority	'2'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'2'
+	option name	'lan2'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'3'
+	option name	'lan3'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'4'
+	option name	'lan4'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'5'
+	option name	'lan5'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'6'
+	option name	'lan6'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'7'
+	option name	'lan7'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'8'
+	option name	'lan8'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'9'
+	option name	'lan9'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'10'
+	option name	'lan10'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'11'
+	option name	'lan11'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'12'
+	option name	'lan12'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'13'
+	option name	'lan13'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'14'
+	option name	'lan14'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'15'
+	option name	'lan15'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'16'
+	option name	'lan16'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'17'
+	option name	'lan17'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'18'
+	option name	'lan18'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'19'
+	option name	'lan19'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'20'
+	option name	'lan20'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'21'
+	option name	'lan21'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'22'
+	option name	'lan22'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'23'
+	option name	'lan23'
+	option poe_plus	'1'
+	option priority	'0'
+
+config port
+	option enable	'1'
+	option id	'24'
+	option name	'lan24'
+	option poe_plus	'1'
+	option priority	'0'
