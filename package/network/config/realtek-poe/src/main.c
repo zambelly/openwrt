@@ -23,7 +23,7 @@
 
 typedef int (*poe_reply_handler)(unsigned char *reply);
 
-#define MAX_PORT	8
+#define MAX_PORT	24
 #define GET_STR(a, b)	(a < ARRAY_SIZE(b) ? b[a] : NULL)
 
 struct port_config {
@@ -52,6 +52,7 @@ struct port_state {
 
 struct state {
 	char *sys_mode;
+	char sys_pse[10];
 	unsigned char sys_version;
 	char *sys_mcu;
 	char *sys_status;
@@ -214,13 +215,14 @@ poe_cmd_dump(char *type, unsigned char *data)
 	fprintf(stderr, "%s ->", type);
 	for (i = 0; i < 12; i++)
 		fprintf(stderr, " 0x%02x", data[i]);
-	fprintf(stderr, "\n");
 }
 
 static int
 poe_cmd_send(struct cmd *cmd)
 {
 	poe_cmd_dump("TX", cmd->cmd);
+	if (config.debug)
+		fprintf(stderr, "\n");
 	ustream_write(&stream.stream, (char *)cmd->cmd, 12, false);
 
 	return 0;
@@ -436,7 +438,9 @@ poe_reply_status(unsigned char *reply)
 		"Nuvoton M05xx LAN Microcontroller",
 		"ST Micro STF030C8 Microcontroller",
 		"Nuvoton M058SAN Microcontroller",
-		"Nuvoton NUC122 Microcontroller"
+		"Nuvoton NUC122 Microcontroller",
+		NULL,
+		"Nuvoton NUC029 Microcontroller"
 	};
 	static char *status[]={
 		"Global Disable pin is de-asserted:No system reset from the previous query cmd:Configuration saved",
@@ -451,6 +455,7 @@ poe_reply_status(unsigned char *reply)
 
 	state.sys_mode = GET_STR(reply[2], mode);
 	config.port_count = reply[3];
+	sprintf(state.sys_pse, "BCM59%x%x", reply[5] - 0xe0, reply[6]);
 	state.sys_version = reply[7];
 	state.sys_mcu = GET_STR(reply[8], mcu);
 	state.sys_status = GET_STR(reply[9], status);
@@ -503,17 +508,17 @@ poe_reply_port_ext_config(unsigned char *reply)
 	return 0;
 }
 
-/* 0x2a - Get all port status */
+/* 0x28 - Get port status */
 static int
-poe_cmd_port_overview(void)
+poe_cmd_port_status(unsigned char port)
 {
-	unsigned char cmd[] = { 0x2a, 0x00, 0x00 };
+	unsigned char cmd[] = { 0x28, 0x00, port, 0x01 };
 
 	return poe_cmd_queue(cmd, sizeof(cmd));
 }
 
 static int
-poe_reply_port_overview(unsigned char *reply)
+poe_reply_port_status(unsigned char *reply)
 {
 	static char *status[]={
 		"Disabled",
@@ -523,10 +528,8 @@ poe_reply_port_overview(unsigned char *reply)
 		"Other fault",
 		"Requesting power",
 	};
-	int i;
 
-	for (i = 0; i < 8; i++)
-		state.ports[i].status = GET_STR((reply[3 + i] & 0xf), status);
+	state.ports[reply[2]].status = GET_STR((reply[3] & 0xf), status);
 
 	return 0;
 }
@@ -559,7 +562,7 @@ static poe_reply_handler reply_handler[] = {
 	[0x20] = poe_reply_status,
 	[0x23] = poe_reply_power_stats,
 	[0x26] = poe_reply_port_ext_config,
-	[0x2a] = poe_reply_port_overview,
+	[0x28] = poe_reply_port_status,
 	[0x30] = poe_reply_port_power_stats,
 };
 
@@ -572,6 +575,8 @@ poe_reply_consume(unsigned char *reply)
 	poe_cmd_dump("RX", reply);
 
 	if (list_empty(&cmd_pending)) {
+		if (config.debug)
+			fprintf(stderr, " - received unsolicited reply\n");
 		ULOG_ERR("received unsolicited reply\n");
 		return -1;
 	}
@@ -583,19 +588,48 @@ poe_reply_consume(unsigned char *reply)
 		sum += reply[i];
 
 	if (reply[11] != sum) {
+		if (config.debug)
+			fprintf(stderr, " - received reply with bad checksum (%02x, should be %02x)\n", reply[11], sum);
 		ULOG_DBG("received reply with bad checksum\n");
 		return -1;
 	}
 
 	if (reply[0] != cmd->cmd[0]) {
-		ULOG_DBG("received reply with bad command id\n");
+		switch (reply[0]) {
+			case 0xfd:
+				if (config.debug)
+					fprintf(stderr, " - MCU reports incomplete request\n");
+				ULOG_ERR("MCU reports incomplete request\n");
+				break;
+			case 0xfe:
+				if (config.debug)
+					fprintf(stderr, " - MCU reports incorrect request checksum\n");
+				ULOG_ERR("MCU reports incorrect request checksum\n");
+				break;
+			case 0xff:
+				if (config.debug)
+					fprintf(stderr, " - MCU not ready\n");
+				ULOG_ERR("MCU not ready\n");
+				break;
+			default:
+				if (config.debug)
+					fprintf(stderr, " - received reply with bad command id\n");
+				ULOG_ERR("received reply with bad command id\n");
+				break;
+		}
+
 		return -1;
 	}
 
 	if (reply[1] != cmd->cmd[1]) {
+		if (config.debug)
+			fprintf(stderr, " - received reply with bad sequence number\n");
 		ULOG_DBG("received reply with bad sequence number\n");
 		return -1;
 	}
+
+	if (config.debug)
+		fprintf(stderr, "\n");
 
 	free(cmd);
 
@@ -642,14 +676,10 @@ poe_stream_open(char *dev, struct ustream_fd *s, speed_t speed)
 	}
 
 	tcgetattr(tty, &tio);
+	cfmakeraw(&tio);
 	tio.c_cflag |= CREAD;
-	tio.c_cflag |= CS8;
 	tio.c_iflag |= IGNPAR;
-	tio.c_lflag &= ~(ICANON);
-	tio.c_lflag &= ~(ECHO);
-	tio.c_lflag &= ~(ECHOE);
-	tio.c_lflag &= ~(ISIG);
-	tio.c_iflag &= ~(IXON | IXOFF | IXANY);
+	tio.c_iflag &= ~(IXOFF | IXANY);
 	tio.c_cflag &= ~CRTSCTS;
 	tio.c_cc[VMIN] = 1;
 	tio.c_cc[VTIME] = 0;
@@ -715,9 +745,9 @@ state_timeout_cb(struct uloop_timeout *t)
 	int i;
 
 	poe_cmd_power_stats();
-	poe_cmd_port_overview();
 
 	for (i = 0; i < config.port_count; i++) {
+		poe_cmd_port_status(i);
 		poe_cmd_port_ext_config(i);
 		poe_cmd_port_power_stats(i);
 	}
@@ -741,6 +771,7 @@ ubus_poe_info_cb(struct ubus_context *ctx, struct ubus_object *obj,
 	blobmsg_add_string(&b, "firmware", tmp);
 	if (state.sys_mcu)
 		blobmsg_add_string(&b, "mcu", state.sys_mcu);
+	blobmsg_add_string(&b, "pse", state.sys_pse);
 	blobmsg_add_double(&b, "budget", config.budget);
 	blobmsg_add_double(&b, "consumption", state.power_consumption);
 
