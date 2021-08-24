@@ -76,9 +76,9 @@ static struct state state;
 static struct blob_buf b;
 
 static struct config config = {
-	.budget = 65,
-	.budget_guard = 7,
-	.port_count = 8,
+	.budget = 170,
+	.budget_guard = 17,
+	.port_count = 24,
 };
 
 static void
