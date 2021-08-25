@@ -26,6 +26,9 @@ typedef int (*poe_reply_handler)(unsigned char *reply);
 #define MAX_PORT	24
 #define GET_STR(a, b)	(a < ARRAY_SIZE(b) ? b[a] : NULL)
 
+static int poe_initial_setup(void);
+static void state_timeout_cb(struct uloop_timeout *t);
+
 struct port_config {
 	char name[16];
 	unsigned char enable;
@@ -78,7 +81,7 @@ static struct blob_buf b;
 static struct config config = {
 	.budget = 170,
 	.budget_guard = 17,
-	.port_count = 24,
+	.port_count = 0,
 };
 
 static void
@@ -461,6 +464,11 @@ poe_reply_status(unsigned char *reply)
 	state.sys_status = GET_STR(reply[9], status);
 	state.sys_ext_version = reply[10];
 
+	/* Continue with initial setup */
+	poe_initial_setup();
+	state_timeout.cb = state_timeout_cb;
+	uloop_timeout_set(&state_timeout, 1000);
+
 	return 0;
 }
 
@@ -728,7 +736,6 @@ poe_port_setup(void)
 static int
 poe_initial_setup(void)
 {
-	poe_cmd_status();
 	poe_cmd_power_mgmt_mode(2);
 	poe_cmd_global_power_budget(0, 0);
 	poe_cmd_global_port_enable(0);
@@ -865,9 +872,7 @@ main(int argc, char ** argv)
 	if (poe_stream_open("/dev/ttyS1", &stream, B19200) < 0)
 		return -1;
 
-	poe_initial_setup();
-	state_timeout.cb = state_timeout_cb;
-	uloop_timeout_set(&state_timeout, 1000);
+	poe_cmd_status();
 	uloop_run();
 	uloop_done();
 
