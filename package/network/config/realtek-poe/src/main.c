@@ -458,7 +458,7 @@ poe_reply_status(unsigned char *reply)
 
 	state.sys_mode = GET_STR(reply[2], mode);
 	config.port_count = reply[3];
-	sprintf(state.sys_pse, "BCM59%x%x", reply[5] - 0xe0, reply[6]);
+	sprintf(state.sys_pse, "BCM59%x%x", (unsigned char)(reply[5] - 0xe0), reply[6]);
 	state.sys_version = reply[7];
 	state.sys_mcu = GET_STR(reply[8], mcu);
 	state.sys_status = GET_STR(reply[9], status);
